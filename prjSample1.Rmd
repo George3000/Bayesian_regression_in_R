@@ -1,0 +1,499 @@
+---
+title: "PrjSample1"
+author: "George Fedorneac"
+date: "April 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.align='center', message = FALSE, warning=FALSE, fig.width=9, fig.height = 5)
+```
+
+
+
+```{r prjSample1}
+
+library(ggplot2)
+library(statsr)
+library(BAS)
+library(pander)
+library(gridExtra)
+library(GGally)
+library(dplyr)
+
+load("movies.Rdata")
+#####################################################
+# Movies with genre "Other" that are actually dramas
+movies$genre[which(movies$title == "Django Unchained")] <- "Drama"
+movies$genre[which(movies$title == "The Color of Money")] <- "Drama"
+movies$genre[which(movies$title == "Down in the Valley")] <- "Drama"
+movies$genre[which(movies$title == "The Fighter")] <- "Drama"
+movies$genre[which(movies$title == "Urban Cowboy")] <- "Drama"
+# Movie where runtime is NA, but actual runtime is known
+movies$runtime[which(movies$title == "The End of America")] <- 71
+# Make a copy of data before adding new variables
+movies_old <- movies
+
+##########################################################
+
+# New categorical variables added
+movies <- movies %>% mutate(feature_film = factor(ifelse(title_type == "Feature Film", "yes", "no")), 
+                            drama = factor(ifelse(genre == "Drama", "yes", "no")), 
+                            mpaa_rating_R = factor(ifelse(mpaa_rating == "R", "yes", "no"))) 
+# New time-based variables added
+movies <- movies %>% mutate(oscar_season = factor(ifelse(thtr_rel_month > 9,"yes", "no")),
+                            summer_season = factor(ifelse(thtr_rel_month > 4 & thtr_rel_month < 9,"yes", "no")))
+# Only the required variables are selected for
+movies <- movies %>% dplyr::select(audience_score, feature_film, drama, runtime, mpaa_rating_R, thtr_rel_year, oscar_season, summer_season,imdb_rating, imdb_num_votes, critics_score, best_pic_nom, best_pic_win, best_actor_win, best_actress_win, best_dir_win, top200_box)
+
+#####################################################
+
+# Summary table of n, mean, and variance by factor group
+sum_table <- movies %>% 
+  tbl_df %>%
+  group_by(feature_film) %>%  
+  summarize(n = n(), Mean = round(mean(audience_score),1), 
+            Variance = round(var(audience_score), 1))
+pandoc.table(sum_table)
+
+boxplot <- ggplot(data = movies, aes(x = feature_film, y = audience_score, fill = factor(feature_film), color = factor(feature_film))) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.2, 0.4), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of `audience_score` by `feature_film`", y = "`audience_score`", x = "`feature_film`", fill = "`feature_film`",color = "`feature_film`")
+
+density <- ggplot(movies, aes(audience_score)) + geom_density(aes(fill = factor(feature_film),color = factor(feature_film)), 
+                                                              alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.2, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of `audience_score` by `feature_film`", y = "P(`audience_score`)", x = "`audience_score`", fill = "`feature_film`",color = "`feature_film`")
+
+grid.arrange(boxplot, density,ncol = 2)
+
+##########################################
+
+sum_table <- movies %>% 
+  tbl_df %>%
+  group_by(drama) %>%  
+  summarize(n = n(), Mean = round(mean(audience_score),1), 
+            Variance = round(var(audience_score), 1))
+pandoc.table(sum_table)
+
+
+boxplot <- ggplot(data = movies, aes(x = drama, y = audience_score, fill = factor(drama), color = factor(drama))) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.5, 0.2), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of `audience_score` by `drama`", y = "`audience_score`", x = "`drama`", fill = "`drama`",color = "`drama`")
+
+density <- ggplot(movies, aes(audience_score)) + geom_density(aes(fill = factor(drama),color = factor(drama)), 
+                                                              alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.2, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of `audience_score` by `drama`", y = "P(`audience_score`)", x = "`audience_score`", fill = "`drama`",color = "`drama`")
+
+grid.arrange(boxplot, density,ncol = 2)
+
+##########################################################
+sum_table <- movies %>% 
+  tbl_df %>%
+  group_by(mpaa_rating_R) %>%  
+  summarize(n = n(), Mean = round(mean(audience_score),1), 
+            Variance = round(var(audience_score), 1))
+pandoc.table(sum_table)
+
+
+boxplot <- ggplot(data = movies, aes(x = mpaa_rating_R, y = audience_score, fill = factor(mpaa_rating_R), color = factor(mpaa_rating_R))) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.5, 0.2), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of `audience_score` by `mpaa_rating_R`", y = "`audience_score`", x = "`mpaa_rating_R`", fill = "`mpaa_rating_R`",color = "`mpaa_rating_R`")
+
+density <- ggplot(movies, aes(audience_score)) + geom_density(aes(fill = factor(mpaa_rating_R),color = factor(mpaa_rating_R)), 
+                                                              alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.2, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of `audience_score` by `mpaa_rating_R`", y = "P(`audience_score`)", x = "`audience_score`", fill = "`mpaa_rating_R`",color = "`mpaa_rating_R`")
+
+grid.arrange(boxplot, density,ncol = 2)
+#################################################################
+sum_table <- movies %>% 
+  tbl_df %>%
+  group_by(oscar_season) %>%  
+  summarize(n = n(), Mean = round(mean(audience_score),1), 
+            Variance = round(var(audience_score), 1))
+pandoc.table(sum_table)
+
+
+boxplot <- ggplot(data = movies, aes(x = oscar_season, y = audience_score, fill = factor(oscar_season), color = factor(oscar_season))) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.5, 0.2), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of `audience_score` by `oscar_season`", y = "`audience_score`", x = "`oscar_season`", fill = "`oscar_season`",color = "`oscar_season`")
+
+density <- ggplot(movies, aes(audience_score)) + geom_density(aes(fill = factor(oscar_season),color = factor(oscar_season)), 
+                                                              alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.2, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of `audience_score` by `oscar_season`", y = "P(`audience_score`)", x = "`audience_score`", fill = "`oscar_season`",color = "`oscar_season`")
+
+grid.arrange(boxplot, density,ncol = 2)
+##################################################
+sum_table <- movies %>% 
+  tbl_df %>%
+  group_by(summer_season) %>%  
+  summarize(n = n(), Mean = round(mean(audience_score),1), 
+            Variance = round(var(audience_score), 1))
+pandoc.table(sum_table)
+
+boxplot <- ggplot(data = movies, aes(x = summer_season, y = audience_score, fill = factor(summer_season), color = factor(summer_season))) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.5, 0.2), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of `audience_score` by `summer_season`", y = "`audience_score`", x = "`summer_season`", fill = "`summer_season`",color = "`summer_season`")
+
+density <- ggplot(movies, aes(audience_score)) + geom_density(aes(fill = factor(summer_season),color = factor(summer_season)), 
+                                                              alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.2, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of `audience_score` by `summer_season`", y = "P(`audience_score`)", x = "`audience_score`", fill = "`summer_season`",color = "`summer_season`")
+
+grid.arrange(boxplot, density,ncol = 2)
+
+#################################################################
+# Custom plot function for ggpairs scatterplot
+my_fn <- function(data, mapping, ...){
+  p <- ggplot(data = data, mapping = mapping) + 
+    geom_point() + 
+    geom_smooth(method=loess, fill="red", color="red", ...) +
+    geom_smooth(method=lm, fill="blue", color="blue", ...)
+  p
+}
+
+movies %>% select(runtime, thtr_rel_year, imdb_rating, critics_score, audience_score) %>% ggpairs(lower = list(continuous = my_fn))
+
+##############################################################
+movies.bas =  bas.lm(audience_score ~ ., 
+                     data=movies,
+                     initprobs = "eplogp",
+                     prior="BIC",
+                     modelprior=uniform()) 
+############################################################
+coefs <- coef(movies.bas, estimator = "BMA")
+# find posterior probabilities 
+coefs_bas <- data.frame(parameter = coefs$namesx, post_mean = coefs$postmean, post_SD = coefs$postsd, post_pne0 = coefs$probne0) %>% arrange(post_pne0) %>% filter(parameter != "Intercept")
+coefs_bas$parameter <- factor(coefs_bas$parameter, levels = coefs_bas$parameter[order(coefs_bas$post_pne0, decreasing = TRUE)])
+high_pne0 <- data.frame(parameter = coefs_bas$parameter, post_pne0 = coefs_bas$post_pne0) %>% filter(post_pne0 > 0.5)
+# Plot the Data
+ggplot(coefs_bas, aes(x = parameter, y = post_pne0)) + 
+  geom_pointrange(aes(ymax = post_pne0), ymin = 0) +
+  geom_pointrange(data=high_pne0, aes(x = parameter, y = post_pne0, ymax = post_pne0), ymin = 0, color = "red") +
+  geom_hline(yintercept = 0.5, color = "red") +
+  labs(title = "Posterior Marginal Inclusion Probabilities of Explanatory Variables",x="Explanatory Variable",y = "Marginal Inclusion Probability") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), plot.title = element_text(hjust = 0.5))
+#############################################################
+# find credible intervals for betas
+coefs_beta <- data.frame(confint(coefs, c(2:17))[,])
+coefs_beta$parameter <- rownames(coefs_beta)
+rownames(coefs_beta) <- NULL
+coefs_bas <- coefs_bas %>% left_join(coefs_beta)
+coefs_bas$parameter <- factor(coefs_bas$parameter, levels = coefs_bas$parameter[order(coefs_bas$beta)])
+high_pne0 <- high_pne0 %>% left_join(coefs_bas)
+# Plot the data
+ggplot(coefs_bas, aes(y = beta, x = parameter)) + 
+  geom_pointrange(aes(ymax = X97.5., ymin = X2.5.)) +
+  geom_point(data=high_pne0, aes(y = beta, x = parameter), color = "red", size = 2.5) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Beta Values with 95% Credible Intervals",x="Explanatory Variable",y = "Beta Value") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_flip() 
+##################################################################
+# Residuals vs fitted plot
+plot(movies.bas, ask=F, which=1)
+
+##############################
+fit <- data.frame(resid = movies$audience_score - predict(movies.bas,estimator = "BMA")$fit) 
+ggplot(fit, aes(x=movies$imdb_rating, y = resid))+ 
+  geom_point() + 
+  geom_smooth(color="red", lwd = 0.5, se = FALSE, span = 0.5)+
+  geom_vline(xintercept = 4.6, color = "blue")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Residuals vs IMDB Rating Plot",x="IMDB Rating",y = "Residuals") +
+  theme_bw()
+
+
+###########################################
+movies <- mutate(movies, imdb_rating_lo = ifelse(imdb_rating < 4.6, 4.6 - imdb_rating, 0))
+
+###################################
+movies_adj.bas =  bas.lm(audience_score ~ ., 
+                         data=movies,
+                         initprobs = "eplogp",
+                         prior="BIC",
+                         modelprior=uniform()) 
+
+############################################
+coefs <- coef(movies_adj.bas, estimator = "BMA")
+# find posterior probabilities 
+coefs_bas <- data.frame(parameter = coefs$namesx, post_mean = coefs$postmean, post_SD = coefs$postsd, post_pne0 = coefs$probne0) %>% arrange(post_pne0) %>% filter(parameter != "Intercept")
+coefs_bas$parameter <- factor(coefs_bas$parameter, levels = coefs_bas$parameter[order(coefs_bas$post_pne0, decreasing = TRUE)])
+high_pne0 <- data.frame(parameter = coefs_bas$parameter, post_pne0 = coefs_bas$post_pne0) %>% filter(post_pne0 > 0.5)
+# Plot the data
+ggplot(coefs_bas, aes(x = parameter, y = post_pne0)) + 
+  geom_pointrange(aes(ymax = post_pne0), ymin = 0) +
+  geom_pointrange(data=high_pne0, aes(x = parameter, y = post_pne0, ymax = post_pne0), ymin = 0, color = "red") +
+  geom_hline(yintercept = 0.5, color = "red") +
+  labs(title = "Posterior Marginal Inclusion Probabilities of Explanatory Variables",x="Explanatory Variable",y = "Marginal Inclusion Probability") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), plot.title = element_text(hjust = 0.5))
+
+###############################################
+
+# find credible intervals for betas
+coefs_beta <- data.frame(confint(coefs, c(2:18))[,])
+coefs_beta$parameter <- rownames(coefs_beta)
+rownames(coefs_beta) <- NULL
+coefs_bas <- coefs_bas %>% left_join(coefs_beta)
+coefs_bas$parameter <- factor(coefs_bas$parameter, levels = coefs_bas$parameter[order(coefs_bas$beta)])
+high_pne0 <- high_pne0 %>% left_join(coefs_bas)
+# Plot the Data
+ggplot(coefs_bas, aes(y = beta, x = parameter)) + 
+  geom_pointrange(aes(ymax = X97.5., ymin = X2.5.)) +
+  geom_point(data=high_pne0, aes(y = beta, x = parameter), color = "red", size = 2.5) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Beta Values with 95% Credible Intervals",x="Explanatory Variable",y = "Beta Value") +
+  coord_flip() 
+
+###################################################
+# Residuals vs fitted plot
+plot(movies_adj.bas, ask=F, which=1)
+######################################
+
+set.seed(123)
+
+n = nrow(movies)
+n_cv = 60
+ape = matrix(NA, ncol=2, nrow=n_cv) # intialize output matrix
+colnames(ape) = c("BMA", "AVG_RMSE")
+# pb <- txtProgressBar(min = 0, max = n_cv, style = 3) # intialize progress bar
+for (i in 1:n_cv) {
+  # setTxtProgressBar(pb, i) # Update progress bar
+  train = sample(1:n, size=round(.90*n), replace=FALSE) # Determine data split
+  movies_train = movies[train,-18]
+  movies_test = movies[-train,-18]
+  
+  bma_train_movies = bas.lm(audience_score ~ ., data=movies_train, 
+                            prior="BIC", modelprior=uniform(), initprobs="eplogp") # Fit model to just training data
+  yhat_bma = predict(bma_train_movies, movies_test, estimator="BMA")$fit # predict test data from train model
+  ape[i, "BMA"] = cv.summary.bas(yhat_bma, movies_test$audience_score)
+  ape[i, "AVG_RMSE"] = NA
+  if (i > 1) {
+    ape[i, "AVG_RMSE"] = mean(ape[, "BMA"], na.rm = TRUE)
+  }
+  
+}
+
+ape_nadj <- ape
+
+
+#####################################################
+set.seed(321)
+
+n = nrow(movies)
+n_cv = 60
+ape = matrix(NA, ncol=2, nrow=n_cv)
+colnames(ape) = c("BMA", "AVG_RMSE")
+pb <- txtProgressBar(min = 0, max = n_cv, style = 3)
+for (i in 1:n_cv) {
+  setTxtProgressBar(pb, i)
+  train = sample(1:n, size=round(.90*n), replace=FALSE)
+  movies_train = movies[train,]
+  movies_test = movies[-train,]
+  
+  bma_train_movies = bas.lm(audience_score ~ ., data=movies_train, 
+                            prior="BIC", modelprior=uniform(), initprobs="eplogp")
+  yhat_bma = predict(bma_train_movies, movies_test, estimator="BMA")$fit
+  ape[i, "BMA"] = cv.summary.bas(yhat_bma, movies_test$audience_score)
+  ape[i, "AVG_RMSE"] = NA
+  if (i > 1) {
+    ape[i, "AVG_RMSE"] = mean(ape[, "BMA"], na.rm = TRUE)
+  }
+  
+}
+
+###############################################
+
+ape_dat <- rbind(data.frame(run = 1:60, RMSE = ape_nadj[,1], running_RMSE = ape_nadj[,2], source = "Not Adj."), data.frame(run = 1:60, RMSE = ape[,1], running_RMSE = ape[,2], source = "Adj."))
+ape_dat$source <- factor(ape_dat$source)
+ape_dat$run <- factor(ape_dat$run)
+# Find the n, mean, variance, and median for the RMSE for both models
+sum_table <- ape_dat %>% 
+  tbl_df %>%
+  group_by(source) %>%  
+  summarize(n = n(), Mean = mean(RMSE, na.rm = TRUE), 
+            Variance = var(RMSE, na.rm = TRUE), Median = median(running_RMSE, na.rm = TRUE))
+# plot th data
+ggplot(ape_dat, aes(x=run, y = running_RMSE, color = source)) +
+  geom_point() +
+  geom_hline(yintercept = sum_table[[1,5]], color = "#F8766D", lty = 2) +
+  geom_text(aes(x = nrow(ape_dat)/2-4, y = sum_table[[1,5]]+0.05*sqrt(sum_table[[1,3]])), label = signif(sum_table[[1,5]], digits = 4), color = "#F8766D") +
+  geom_hline(yintercept = sum_table[[2,5]], color = "#00BFC4", lty = 2) +
+  geom_text(aes(x = nrow(ape_dat)/2-4, y = sum_table[[2,5]]+0.05*sqrt(sum_table[[2,3]])), label = signif(sum_table[[2,5]], digits = 4), color = "#00BFC4") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Running Cross Validation RMSE Estimate by Iteration Number",x="Iteration Number",y = "Running Mean RMSE Estimate", color = "Model") +
+  theme_bw()
+
+##################################################
+
+boxplot <- ggplot(data = ape_dat, aes(x = source, y = RMSE, fill = source, color = source)) +
+  geom_boxplot(alpha =0.6) + 
+  theme(legend.position=c(0.8, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Boxplot of RMSE by model", y = "RMSE", x = "model", fill = "model",color = "model")
+
+density <- ggplot(ape_dat, aes(RMSE)) + geom_density(aes(fill = source,color = source), 
+                                                     alpha = 0.6) +
+  geom_vline(xintercept = sum_table[[1,3]], color = "#F8766D") +
+  geom_vline(xintercept = sum_table[[1,3]] + sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[1,3]] - sqrt(sum_table[[1,4]]), color = "#F8766D", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]] , color = "#00BFC4") +
+  geom_vline(xintercept = sum_table[[2,3]]  + sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  geom_vline(xintercept = sum_table[[2,3]]  - sqrt(sum_table[[2,4]]), color = "#00BFC4", lty = 2, alpha =0.6) +
+  theme(legend.position=c(0.8, 0.8), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Density of RMSE by model", y = "P(RMSE)", x = "RMSE", fill = "model",color = "model") 
+
+grid.arrange(boxplot, density, ncol=2)
+
+
+##############################################
+
+bayes_inference(y = RMSE, x = source, data = ape_dat, statistic = "mean", type = "ht", null = 0, alternative = "twosided",show_plot=FALSE)
+bayes_inference(y = RMSE, x = source, data = ape_dat, statistic = "mean", type = "ci", null = 0, alternative = "twosided", show_summ = FALSE)
+
+
+##############################################
+
+# Quantile-Quantile Plot of Residuals
+test <- predict(movies_adj.bas,estimator = "BMA")
+resid <- movies$audience_score - test$fit
+mu_resid <- mean(resid)
+sd_resid <- sd(resid)
+std_resid <- (resid-mu_resid)/sd_resid
+par(mfrow=c(1,2))
+qqnorm(std_resid, lty = 2)
+qqline(std_resid)
+plot(density(std_resid), main="Probability Density of Std. Residuals", 
+     xlab="Std. Residuals", ylab="P(Std. Residuals)")
+
+
+###############################################
+
+sqrt_std_resid <- sqrt(abs(std_resid))
+plot_dat <- data.frame(fitted = test$fit, resid = resid, imdb_rating = movies$critics_score,sqrt_std_resid = sqrt_std_resid)
+ggplot(plot_dat, aes(x = fitted, y = sqrt_std_resid)) + geom_point() + 
+  geom_smooth(color= "red", se = FALSE, lwd = 0.5) + 
+  labs(title = "Scale-Location Plot for Adj. Model", y = "Sqrt(Std. Residuals)", x = "Fitted values") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw() + 
+  xlim(15, 101)
+
+#############################################
+
+set.seed(40)
+n = nrow(movies)
+movies_outliers = cbind(movies, diag(1, nrow=n))
+outliers_movies = bas.lm(audience_score ~ ., data=movies_outliers, 
+                         prior="BIC", a=n,
+                         modelprior=tr.beta.binomial(a=1, b=1, trunc=n/2),
+                         method="MCMC",
+                         initprobs="marg-eplogp",
+                         MCMC.iterations=2*10^6
+)
+
+pandoc.table(outliers_movies$namesx[outliers_movies$probne0 > .5])
+
+######################################################
+
+movies[c(126,216,251),]
+
+#################################################
+
+movies_adj.bas
+summary(movies_adj.bas)
+
+
+##############################################
+
+image(movies_adj.bas, rotate = FALSE)
+
+#############################################
+
+# Data for arrival
+new_movie = data.frame(audience_score = 82, feature_film = "yes", drama = "yes", runtime=116, mpaa_rating_R = "no",thtr_rel_year = 2016, oscar_season = "yes", summer_season = "no", imdb_rating = 8.0, imdb_num_votes = 337591,critics_score=94, best_pic_nom = "yes", best_pic_win = "no", best_actor_win = "no", best_actress_win = "no", best_dir_win = "no", top200_box = "no")
+new_movie <- mutate(new_movie, imdb_rating_lo = ifelse(imdb_rating < 4.6, 4.6-imdb_rating, 0))
+
+prediction <- predict(movies_adj.bas, new_movie, estimator = "BMA", se.fit=TRUE)
+ci_audience <- confint(prediction, parm="pred")
+RMSE <- sum_table[[2,3]]
+row1<- data.frame(type="95% cred.", lwr = ci_audience[1], pred = ci_audience[3], upr = ci_audience[2]) 
+row2 <- data.frame(type ="RMSE", lwr = ci_audience[3] - RMSE, pred = ci_audience[3], upr = ci_audience[3] + RMSE)
+pandoc.table(rbind(row1,row2))
+
+##############################################
+
+new_movie = data.frame(audience_score = 62, feature_film = "yes", drama = "no", runtime=123, mpaa_rating_R = "no",thtr_rel_year = 2016, oscar_season = "no", summer_season = "no", imdb_rating = 6.2, imdb_num_votes = 391684,critics_score=25, best_pic_nom = "no", best_pic_win = "no", best_actor_win = "no", best_actress_win = "no", best_dir_win = "no", top200_box = "no", imdb_rating_lo = "no")
+new_movie <- mutate(new_movie, imdb_rating_lo = ifelse(imdb_rating < 4.6, 4.6-imdb_rating, 0))
+
+prediction <- predict(movies.bas, new_movie, estimator = "BMA", se.fit=TRUE)
+ci_audience <- confint(prediction, parm="pred")
+row1<- data.frame(type="95% cred.", lwr = ci_audience[1], pred = ci_audience[3], upr = ci_audience[2]) 
+row2 <- data.frame(type ="RMSE", lwr = ci_audience[3] - RMSE, pred = ci_audience[3], upr = ci_audience[3] + RMSE)
+pandoc.table(rbind(row1,row2))
+
+###############################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################################################
+
+
+
+
+
+```
+
